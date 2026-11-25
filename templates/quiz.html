@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}Practice Quiz — SmartStudy AI{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>✏️ Practice Quiz</h1>
+  <p>Test your knowledge and identify weak areas</p>
+</div>
+
+<div class="quiz-layout">
+
+  <!-- ══ Setup Panel ════════════════════════════════════════════ -->
+  <div id="quizSetupPanel">
+    <div class="quiz-setup">
+
+      <div class="panel-card">
+        <div class="panel-title">📝 Generate a Quiz</div>
+
+        <div class="form-group" style="margin-bottom:.75rem">
+          <label class="form-label">Study Material</label>
+          <textarea id="quizMaterial" class="text-area" rows="8"
+            placeholder="Paste your study notes or textbook content here…"></textarea>
+        </div>
+
+        <div class="options-grid" style="margin-bottom:.75rem">
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input type="text" id="quizSubject" class="form-input" placeholder="e.g. Biology">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quiz Type</label>
+            <select id="quizType" class="form-input">
+              <option value="mcq">Multiple Choice</option>
+              <option value="short_answer">Short Answer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Questions</label>
+            <input type="number" id="quizCount" class="form-input" value="5" min="3" max="20">
+          </div>
+        </div>
+
+        <button class="btn btn-primary full-width" id="generateBtn" onclick="generateAndStartQuiz()">
+          🚀 Generate &amp; Start Quiz
+        </button>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="panel-card">
+        <div class="panel-title">📊 Your Quiz Stats</div>
+        <div class="qs-grid" id="quizStats">
+          <div class="qs-item">
+            <span class="qs-num" id="totalQuizzes">—</span>
+            <span class="qs-lbl">Quizzes Taken</span>
+          </div>
+          <div class="qs-item">
+            <span class="qs-num" id="avgScore">—</span>
+            <span class="qs-lbl">Avg Score</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ Taking Panel ═══════════════════════════════════════════ -->
+  <div id="quizTakingPanel" class="hidden">
+    <div class="quiz-taking">
+
+      <!-- Progress bar -->
+      <div class="quiz-prog-bar">
+        <div class="qpb-top">
+          <span id="questionProgress">Question 1 of 5</span>
+          <span class="q-timer" id="quizTimer">⏱ 00:00</span>
+        </div>
+        <div class="prog-bar">
+          <div class="prog-fill" id="quizProgressFill" style="width:20%"></div>
+        </div>
+      </div>
+
+      <!-- Question slides -->
+      <div id="quizQuestionsContainer"></div>
+
+      <!-- Navigation -->
+      <div class="quiz-nav">
+        <button class="btn btn-outline" onclick="prevQuestion()" id="prevBtn" disabled>◀ Previous</button>
+        <div class="q-dots" id="questionDots"></div>
+        <button class="btn btn-primary" onclick="nextQuestion()" id="nextBtn">Next ▶</button>
+      </div>
+
+      <button class="btn btn-accent full-width" id="submitQuizBtn" onclick="submitQuiz()" style="display:none; margin-top:.5rem">
+        ✅ Submit Quiz
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ══ Results Panel ══════════════════════════════════════════ -->
+  <div id="quizResultsPanel" class="hidden">
+    <div class="quiz-results">
+
+      <div class="results-hero">
+        <div class="score-ring" id="scoreRing">
+          <span class="score-pct" id="finalScore">0%</span>
+          <span class="score-lbl">Score</span>
+        </div>
+        <div class="results-txt">
+          <h2 id="resultMessage">Great Job!</h2>
+          <p id="resultDetail"></p>
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div class="qs-grid" id="resultStats"></div>
+
+      <!-- AI analysis + answer review -->
+      <div id="resultsBreakdown"></div>
+
+      <div class="results-acts">
+        <button class="btn btn-primary" onclick="retakeQuiz()">🔄 Retake Quiz</button>
+        <button class="btn btn-outline" onclick="newQuiz()">📝 New Quiz</button>
+        <button class="btn btn-secondary" onclick="window.location.href='/dashboard'">📊 Dashboard</button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /quiz-layout -->
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let quizData = null;
+let currentQ = 0;
+let userAnswers = {};
+let timerInterval = null;
+let startTime = null;
+let elapsedSeconds = 0;
+
+// ── Generate ──────────────────────────────────────────────────
+async function generateAndStartQuiz() {
+  const material = document.getElementById('quizMaterial').value.trim();
+  if (!material) { showToast('Please paste study material first', 'warning'); return; }
+
+  const subject  = document.getElementById('quizSubject').value;
+  const quizType = document.getElementById('quizType').value;
+  const count    = parseInt(document.getElementById('quizCount').value);
+
+  const btn = document.getElementById('generateBtn');
+  btn.textContent = '⏳ Generating…'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/process', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: material, action: 'quiz', options: { subject, quiz_type: quizType, count } }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    quizData = data.data;
+    if (!quizData?.questions?.length) throw new Error('No questions generated. Try with more content.');
+    startQuiz();
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.textContent = '🚀 Generate & Start Quiz'; btn.disabled = false;
+  }
+}
+
+// ── Start ─────────────────────────────────────────────────────
+function startQuiz() {
+  currentQ = 0; userAnswers = {};
+  document.getElementById('quizSetupPanel').classList.add('hidden');
+  document.getElementById('quizTakingPanel').classList.remove('hidden');
+  document.getElementById('quizResultsPanel').classList.add('hidden');
+  renderAllQuestions();
+  updateNav();
+  startTimer();
+  showToast(`Quiz started — ${quizData.questions.length} questions`, 'success');
+}
+
+// ── Render questions ──────────────────────────────────────────
+function renderAllQuestions() {
+  const container = document.getElementById('quizQuestionsContainer');
+  const dots      = document.getElementById('questionDots');
+  container.innerHTML = ''; dots.innerHTML = '';
+
+  quizData.questions.forEach((q, i) => {
+    const slide = document.createElement('div');
+    slide.className = `q-slide${i === 0 ? ' active' : ''}`;
+    slide.id = `qs-${i}`;
+
+    let optHtml = '';
+    if (q.options) {
+      Object.entries(q.options).forEach(([k, v]) => {
+        optHtml += `<label class="opt-label" id="opt-${i}-${k}">
+          <input type="radio" name="q${i}" value="${k}" onchange="selectAnswer(${i},'${k}')">
+          <span class="opt-key">${k}</span>
+          <span class="opt-text">${esc(v)}</span>
+        </label>`;
+      });
+    } else {
+      optHtml = `<textarea class="text-area sa-input" id="sa-${i}" rows="3"
+        placeholder="Type your answer…"
+        oninput="selectAnswer(${i}, this.value)"></textarea>`;
+    }
+
+    slide.innerHTML = `
+      <div class="q-card">
+        <div class="q-meta">
+          <span class="q-badge-num">Q${i+1}</span>
+          ${q.topic ? `<span class="q-topic-badge">${esc(q.topic)}</span>` : ''}
+        </div>
+        <p class="q-text">${esc(q.question)}</p>
+        <div class="opts-wrap">${optHtml}</div>
+      </div>`;
+    container.appendChild(slide);
+
+    const dot = document.createElement('span');
+    dot.className = `q-dot${i===0?' active':''}`;
+    dot.onclick = () => goToQ(i);
+    dots.appendChild(dot);
+  });
+
+  document.getElementById('quizProgressFill').style.width = `${100/quizData.questions.length}%`;
+  document.getElementById('questionProgress').textContent = `Question 1 of ${quizData.questions.length}`;
+}
+
+function selectAnswer(qi, val) {
+  userAnswers[qi] = val;
+  document.querySelectorAll(`#qs-${qi} .opt-label`).forEach(el => {
+    el.classList.toggle('selected', el.querySelector('input')?.value === val);
+  });
+  document.querySelectorAll('.q-dot')[qi].classList.add('answered');
+  checkSubmit();
+}
+
+function goToQ(idx) {
+  document.querySelectorAll('.q-slide').forEach((s,i) => s.classList.toggle('active', i===idx));
+  document.querySelectorAll('.q-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+  currentQ = idx; updateNav();
+}
+function nextQuestion() { if (currentQ < quizData.questions.length-1) goToQ(currentQ+1); }
+function prevQuestion() { if (currentQ > 0) goToQ(currentQ-1); }
+
+function updateNav() {
+  document.getElementById('prevBtn').disabled = currentQ === 0;
+  const isLast = currentQ === quizData.questions.length - 1;
+  document.getElementById('nextBtn').style.display = isLast ? 'none' : 'inline-flex';
+  document.getElementById('questionProgress').textContent = `Question ${currentQ+1} of ${quizData.questions.length}`;
+  document.getElementById('quizProgressFill').style.width = `${((currentQ+1)/quizData.questions.length)*100}%`;
+}
+
+function checkSubmit() {
+  const answered = Object.keys(userAnswers).length;
+  document.getElementById('submitQuizBtn').style.display = answered === quizData.questions.length ? 'block' : 'none';
+}
+
+// ── Timer ─────────────────────────────────────────────────────
+function startTimer() {
+  startTime = Date.now(); elapsedSeconds = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(elapsedSeconds/60).toString().padStart(2,'0');
+    const s = (elapsedSeconds%60).toString().padStart(2,'0');
+    document.getElementById('quizTimer').textContent = `⏱ ${m}:${s}`;
+  }, 1000);
+}
+
+// ── Submit ────────────────────────────────────────────────────
+async function submitQuiz() {
+  clearInterval(timerInterval);
+  const answers = {}, correct = {}, topicsMap = {};
+  quizData.questions.forEach((q, i) => {
+    answers[i]   = userAnswers[i] || '';
+    correct[i]   = q.correct || q.model_answer || '';
+    topicsMap[i] = q.topic || document.getElementById('quizSubject').value || 'General';
+  });
+  document.getElementById('quizTakingPanel').classList.add('hidden');
+  try {
+    const res = await fetch('/api/submit-quiz', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, correct, subject: quizData.subject||'', topics: topicsMap }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    displayResults(data);
+  } catch(e) {
+    showToast(e.message, 'error');
+    document.getElementById('quizTakingPanel').classList.remove('hidden');
+  }
+}
+
+// ── Results ───────────────────────────────────────────────────
+function displayResults(data) {
+  document.getElementById('quizResultsPanel').classList.remove('hidden');
+
+  const score   = data.overall_score || 0;
+  const correct = data.total_correct  || 0;
+  const total   = data.total_questions || quizData.questions.length;
+  const mins    = Math.floor(elapsedSeconds/60);
+  const secs    = elapsedSeconds % 60;
+
+  document.getElementById('finalScore').textContent = `${score}%`;
+  const ring = document.getElementById('scoreRing');
+  ring.className = `score-ring ${score>=80?'ok':score>=60?'mid':'low'}`;
+
+  document.getElementById('resultMessage').textContent =
+    score >= 80 ? '🎉 Excellent Work!' : score >= 60 ? '👍 Good Job!' : '💪 Keep Practicing!';
+  document.getElementById('resultDetail').textContent =
+    `You got ${correct} out of ${total} questions correct.`;
+
+  document.getElementById('resultStats').innerHTML = `
+    <div class="qs-item"><span class="qs-num">${score}%</span><span class="qs-lbl">Score</span></div>
+    <div class="qs-item"><span class="qs-num">${correct}/${total}</span><span class="qs-lbl">Correct</span></div>
+    <div class="qs-item"><span class="qs-num">${mins}m ${secs}s</span><span class="qs-lbl">Time</span></div>
+    <div class="qs-item"><span class="qs-num">${Math.round(score>=60?score*1.1:score)}%</span><span class="qs-lbl">Accuracy</span></div>`;
+
+  // AI analysis
+  let html = '';
+  if (data.response) {
+    html += `<div class="answer-review" style="margin-bottom:1rem">
+      <h3>🤖 AI Performance Analysis</h3>
+      <div class="md-out">${renderMd(data.response)}</div>
+    </div>`;
+  }
+
+  // Answer review
+  if (quizData?.questions) {
+    html += '<div class="answer-review"><h3>📋 Answer Review</h3>';
+    quizData.questions.forEach((q, i) => {
+      const ua = userAnswers[i] || 'Not answered';
+      const ca = q.correct || q.model_answer || '';
+      const ok = ua === ca;
+      html += `<div class="rev-item ${ok?'ok':'bad'}">
+        <div class="rev-hdr"><span>${ok?'✅':'❌'}</span><span>Q${i+1}</span>${q.topic?`<span class="q-topic-badge" style="font-size:.65rem">${esc(q.topic)}</span>`:''}</div>
+        <p class="rev-q">${esc(q.question)}</p>
+        ${!ok?`<p class="rev-yours">Your answer: ${esc(ua)}</p>`:''}
+        <p class="rev-ans">Correct: ${esc(ca)}</p>
+        ${q.explanation?`<p class="rev-expl">💡 ${esc(q.explanation)}</p>`:''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+  document.getElementById('resultsBreakdown').innerHTML = html;
+  loadQuizStats();
+}
+
+// ── Controls ──────────────────────────────────────────────────
+function retakeQuiz() {
+  currentQ = 0; userAnswers = {};
+  document.getElementById('quizResultsPanel').classList.add('hidden');
+  document.getElementById('quizTakingPanel').classList.remove('hidden');
+  renderAllQuestions(); updateNav(); startTimer();
+}
+function newQuiz() {
+  quizData = null;
+  document.getElementById('quizResultsPanel').classList.add('hidden');
+  document.getElementById('quizSetupPanel').classList.remove('hidden');
+}
+
+// ── Stats ─────────────────────────────────────────────────────
+async function loadQuizStats() {
+  try {
+    const r = await fetch('/api/progress');
+    const d = await r.json();
+    document.getElementById('totalQuizzes').textContent = d.quizzes_taken || 0;
+    const scores = Object.values(d.quiz_scores || {});
+    const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+    document.getElementById('avgScore').textContent = avg !== null ? `${avg}%` : '—';
+  } catch(e) {}
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+loadQuizStats();
+</script>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}SmartStudy AI — Your Intelligent Study Companion{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span class="dot"></span>
+      Powered by Groq &middot; gpt-oss-120b &middot; Agentic AI
+    </div>
+
+    <h1 class="hero-title">
+      Study Smarter,
+      <span class="line2"><span class="gradient-text">Not Harder</span></span>
+    </h1>
+
+    <p class="hero-subtitle">
+      Your agentic AI companion that transforms notes, PDFs, and textbooks
+      into personalized summaries, flashcards, quizzes, and adaptive study plans
+      — in seconds.
+    </p>
+
+    <div class="hero-cta">
+      <a href="{{ url_for('study') }}"     class="btn btn-primary btn-lg">🚀 Start Studying</a>
+      <a href="{{ url_for('quiz_page') }}" class="btn btn-outline btn-lg">✏️ Take a Quiz</a>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-lg">📊 Dashboard</a>
+    </div>
+
+    <div class="hero-badges">
+      <span class="hero-badge-item">🤖 Agentic ReAct Loop</span>
+      <span class="hero-badge-item">📄 PDF &amp; OCR Support</span>
+      <span class="hero-badge-item">🎯 Exam Predictions</span>
+      <span class="hero-badge-item">🃏 Smart Flashcards</span>
+      <span class="hero-badge-item">⚡ Groq Ultra-Fast</span>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="hero-glow"></div>
+    <div class="hero-cards">
+      <div class="hero-mini-card">
+        <span class="hmc-icon">📄</span>
+        <div class="hmc-title">AI Summary</div>
+        <div class="hmc-desc">Structured notes from any material</div>
+      </div>
+      <div class="hero-mini-card">
+        <span class="hmc-icon">🃏</span>
+        <div class="hmc-title">Flashcards</div>
+        <div class="hmc-desc">Active recall with difficulty ratings</div>
+      </div>
+      <div class="hero-mini-card">
+        <span class="hmc-icon">✏️</span>
+        <div class="hmc-title">Quizzes</div>
+        <div class="hmc-desc">MCQ &amp; short answer, instant feedback</div>
+      </div>
+      <div class="hero-mini-card">
+        <span class="hmc-icon">🔮</span>
+        <div class="hmc-title">Predictions</div>
+        <div class="hmc-desc">AI predicts your exam topics</div>
+      </div>
+      <div class="hero-mini-card">
+        <span class="hmc-icon">📅</span>
+        <div class="hmc-title">Study Plan</div>
+        <div class="hmc-desc">Personalized day-by-day schedule</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     FEATURES
+══════════════════════════════════════════════════════════ -->
+<section class="features-section">
+  <p class="section-label">What We Offer</p>
+  <h2 class="section-title">Everything You Need to Excel</h2>
+  <p class="section-sub">Six powerful AI tools, one intelligent platform.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon-wrap">📄</div>
+      <h3>AI Summarization</h3>
+      <p>Upload PDFs, images or paste text. Get structured summaries with key concepts, definitions, and takeaways instantly.</p>
+      <span class="feature-tag">Groq-powered</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap">🃏</div>
+      <h3>Smart Flashcards</h3>
+      <p>Auto-generate Q&amp;A flashcards with difficulty ratings from any study material for active recall practice.</p>
+      <span class="feature-tag">Active Recall</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap">✏️</div>
+      <h3>Adaptive Quizzes</h3>
+      <p>MCQ and short-answer quizzes generated from your content. Get instant feedback, scores, and explanations.</p>
+      <span class="feature-tag">Self-Assessment</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap">📅</div>
+      <h3>Personalized Study Plans</h3>
+      <p>Tell us your topics and exam date. Get a day-by-day optimized study schedule with milestones and tips.</p>
+      <span class="feature-tag">Adaptive</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap">🔮</div>
+      <h3>Exam Predictions</h3>
+      <p>AI analyzes your syllabus and predicts high-probability exam topics with confidence scores and urgency alerts.</p>
+      <span class="feature-tag">Predictive AI</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap">📊</div>
+      <h3>Progress Dashboard</h3>
+      <p>Track study streaks, weak areas, quiz performance, achievements, and learning milestones in real time.</p>
+      <span class="feature-tag">Analytics</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CHAT
+══════════════════════════════════════════════════════════ -->
+<section class="chat-section">
+  <div class="chat-header">
+    <h2>💬 Ask SmartStudy AI Anything</h2>
+    <p>Your agentic AI automatically picks the right tool for your request</p>
+  </div>
+
+  <div class="chat-wrapper">
+    <!-- Topbar -->
+    <div class="chat-topbar">
+      <div class="chat-topbar-info">
+        <div class="chat-avatar">🎓</div>
+        <div>
+          <div class="chat-name">SmartStudy AI</div>
+          <div class="chat-status">
+            <span class="status-dot" style="width:6px;height:6px;display:inline-block"></span>
+            Online &middot; gpt-oss-120b via Groq
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="clearChat()">🗑️ Clear</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-msg assistant">
+        <div class="msg-avi">🎓</div>
+        <div class="msg-bubble">
+          <p>Hi! I'm <strong>SmartStudy AI</strong>. I can help you:</p>
+          <ul>
+            <li>📄 Summarize notes or textbook chapters</li>
+            <li>🃏 Create flashcards from your material</li>
+            <li>✏️ Generate MCQ or short-answer quizzes</li>
+            <li>📅 Build a personalized study plan</li>
+            <li>🔮 Predict your most likely exam topics</li>
+            <li>💡 Explain any concept in depth</li>
+          </ul>
+          <p>What would you like to study today?</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick chips -->
+    <div class="chat-bottom">
+      <div class="chat-chips">
+        <span class="chip" onclick="quickPrompt('Explain Newton\'s laws of motion with examples')">💡 Explain a concept</span>
+        <span class="chip" onclick="quickPrompt('Create a 7-day study plan for my Data Structures exam')">📅 Study plan</span>
+        <span class="chip" onclick="quickPrompt('What topics should I focus on for my Physics final exam?')">🔮 Predict topics</span>
+        <span class="chip" onclick="quickPrompt('Summarize the key points of photosynthesis for a beginner')">📄 Summarize</span>
+      </div>
+      <div class="chat-input-row">
+        <textarea id="chatInput" class="chat-input"
+          placeholder="Ask anything… e.g. 'Explain recursion for beginners' or 'Build a 7-day study plan for Calculus'"
+          rows="1"></textarea>
+        <button class="chat-send" id="chatSend" onclick="sendChatMessage()" title="Send (Enter)">➤</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     HOW IT WORKS
+══════════════════════════════════════════════════════════ -->
+<section class="how-section">
+  <p class="section-label">How It Works</p>
+  <h2 class="section-title">Three Steps to Smarter Studying</h2>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <h3>Upload or Paste</h3>
+      <p>Drop a PDF, image, or paste your study text directly into the app.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <h3>Choose Your Tool</h3>
+      <p>Select summarize, flashcards, quiz, concept map, or exam prediction.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <h3>Study &amp; Improve</h3>
+      <p>Review AI-generated content, take quizzes, and track your progress.</p>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function quickPrompt(text) {
+  const inp = document.getElementById('chatInput');
+  inp.value = text;
+  inp.dispatchEvent(new Event('input'));
+  inp.focus();
+}
+</script>
+{% endblock %}

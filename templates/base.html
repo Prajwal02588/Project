@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SmartStudy AI — Your agentic AI study companion. Summarize notes, generate flashcards, take quizzes, and build personalized study plans powered by Groq LLM.">
+  <meta name="theme-color" content="#050810">
+  <meta property="og:title" content="SmartStudy AI">
+  <meta property="og:description" content="Transform your notes into summaries, flashcards, quizzes & study plans with AI.">
+  <meta property="og:type" content="website">
+  <title>{% block title %}SmartStudy AI{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ── Navbar ──────────────────────────────────────────────── -->
+<nav class="navbar">
+  <a href="{{ url_for('index') }}" class="nav-brand">
+    <span class="brand-icon">🎓</span>
+    <span class="brand-name">SmartStudy <span class="brand-ai">AI</span></span>
+  </a>
+
+  <div class="nav-links">
+    <a href="{{ url_for('index') }}"     class="nav-link {% if request.endpoint=='index'     %}active{% endif %}">🏠 Home</a>
+    <a href="{{ url_for('study') }}"     class="nav-link {% if request.endpoint=='study'     %}active{% endif %}">📚 Study</a>
+    <a href="{{ url_for('quiz_page') }}" class="nav-link {% if request.endpoint=='quiz_page' %}active{% endif %}">✏️ Quiz</a>
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">📊 Dashboard</a>
+  </div>
+
+  <div class="nav-right">
+    <div class="ai-status">
+      <span class="status-dot"></span>
+      AI Active
+    </div>
+  </div>
+</nav>
+
+<!-- ── Page content ─────────────────────────────────────────── -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ── Toast ────────────────────────────────────────────────── -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- ── Scripts ──────────────────────────────────────────────── -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+
+<!-- ── Footer ───────────────────────────────────────────────── -->
+<footer class="site-footer">
+  Made with ❤️ by Prajwal
+</footer>
+
+</body>
+</html>

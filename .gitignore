@@ -1,0 +1,11 @@
+myenv/
+.env
+__pycache__/
+*.pyc
+data/
+uploads/
+.env
+.env.*
+!.env.example
+myenv/
+__pycache__/

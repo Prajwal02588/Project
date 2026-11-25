@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+{% block title %}Study Tools — SmartStudy AI{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>📚 Study Tools</h1>
+  <p>Upload your material and let the AI do the heavy lifting</p>
+</div>
+
+<div class="study-layout">
+
+  <!-- ══ Left: Input Panel ═══════════════════════════════════ -->
+  <div class="input-panel">
+
+    <!-- Upload -->
+    <div class="panel-card">
+      <div class="panel-title">📂 Upload Material</div>
+      <div class="upload-zone" id="uploadZone">
+        <span class="upload-zone-icon">📂</span>
+        <p><strong>Drop files here</strong> or click to browse</p>
+        <p class="upload-hint">PDF &middot; TXT &middot; PNG &middot; JPG &middot; WAV &middot; MP3</p>
+        <input type="file" id="fileInput" accept=".pdf,.txt,.png,.jpg,.jpeg,.wav,.mp3,.m4a" hidden>
+      </div>
+      <div id="uploadStatus" class="upload-status hidden"></div>
+    </div>
+
+    <!-- Text area -->
+    <div class="panel-card">
+      <div class="panel-title">📝 Or Paste Text</div>
+      <textarea id="studyText" class="text-area" rows="8"
+        placeholder="Paste your notes, textbook excerpts, or any study content here…"></textarea>
+      <div class="text-stats" id="textStats">0 words &middot; 0 chars</div>
+    </div>
+
+    <!-- Options -->
+    <div class="panel-card">
+      <div class="panel-title">⚙️ Options</div>
+      <div class="options-grid">
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input type="text" id="subjectInput" class="form-input" placeholder="e.g. Physics, History">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Level</label>
+          <select id="levelSelect" class="form-input">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate" selected>Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quiz Type</label>
+          <select id="quizTypeSelect" class="form-input">
+            <option value="mcq">Multiple Choice</option>
+            <option value="short_answer">Short Answer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Count</label>
+          <input type="number" id="countInput" class="form-input" value="10" min="3" max="25">
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="panel-card">
+      <div class="panel-title">⚡ Actions</div>
+      <div class="action-buttons">
+        <button class="action-btn" onclick="processAction('summarize')" id="ab-summarize">
+          <span class="ab-icon">📄</span><span>Summarize</span>
+        </button>
+        <button class="action-btn" onclick="processAction('flashcards')" id="ab-flashcards">
+          <span class="ab-icon">🃏</span><span>Flashcards</span>
+        </button>
+        <button class="action-btn" onclick="processAction('quiz')" id="ab-quiz">
+          <span class="ab-icon">✏️</span><span>Quiz Preview</span>
+        </button>
+        <button class="action-btn" onclick="processAction('concept_map')" id="ab-concept_map">
+          <span class="ab-icon">🗺️</span><span>Concept Map</span>
+        </button>
+        <button class="action-btn" onclick="processAction('predict_topics')" id="ab-predict_topics">
+          <span class="ab-icon">🔮</span><span>Predict Topics</span>
+        </button>
+        <button class="action-btn" onclick="explainConcept()" id="ab-explain">
+          <span class="ab-icon">💡</span><span>Explain</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Study Plan builder -->
+    <div class="panel-card">
+      <div class="panel-title">📅 Build Study Plan</div>
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label class="form-label">Topics (one per line)</label>
+        <textarea id="planTopics" class="text-area" rows="4"
+          placeholder="Topic 1&#10;Topic 2&#10;Topic 3"></textarea>
+      </div>
+      <div class="options-grid" style="margin-bottom:.75rem">
+        <div class="form-group">
+          <label class="form-label">Days Until Exam</label>
+          <input type="number" id="planDays" class="form-input" value="7" min="1" max="90">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hours / Day</label>
+          <input type="number" id="planHours" class="form-input" value="2" min="0.5" max="12" step="0.5">
+        </div>
+      </div>
+      <button class="btn btn-primary full-width" onclick="buildStudyPlan()">📅 Generate Study Plan</button>
+    </div>
+
+    <!-- Concept explainer -->
+    <div class="panel-card">
+      <div class="panel-title">💡 Explain a Concept</div>
+      <div class="form-group" style="margin-bottom:.75rem">
+        <input type="text" id="conceptInput" class="form-input"
+          placeholder="e.g. Photosynthesis, Recursion, Supply &amp; Demand">
+      </div>
+      <button class="btn btn-secondary full-width" onclick="explainConcept()">💡 Explain It</button>
+    </div>
+
+  </div><!-- /input-panel -->
+
+  <!-- ══ Right: Output Panel ══════════════════════════════════ -->
+  <div class="output-panel">
+    <div class="output-topbar">
+      <h3 id="outputTitle">📋 Results will appear here</h3>
+      <div class="output-actions" id="outputActions" style="display:none">
+        <button class="btn btn-sm btn-outline" onclick="copyOutput()">📋 Copy</button>
+        <button class="btn btn-sm btn-outline" onclick="downloadOutput()">⬇️ Save</button>
+        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">✕</button>
+      </div>
+    </div>
+
+    <!-- Spinner -->
+    <div id="loadingSpinner" class="spinner-wrap hidden">
+      <div class="spinner"></div>
+      <p class="spinner-label" id="loadingText">AI is thinking…</p>
+    </div>
+
+    <!-- Content -->
+    <div id="outputContent" class="output-body">
+      <div class="empty-state">
+        <span class="es-icon">🤖</span>
+        <h3>Ready to process</h3>
+        <p>Upload a file or paste text, then choose an action.</p>
+      </div>
+    </div>
+
+    <!-- Flashcard viewer -->
+    <div id="fcViewer" class="fc-viewer hidden">
+      <div class="fc-nav">
+        <button class="btn btn-sm btn-outline" onclick="prevCard()">◀ Prev</button>
+        <span class="fc-counter" id="cardCounter">1 / 10</span>
+        <button class="btn btn-sm btn-outline" onclick="nextCard()">Next ▶</button>
+      </div>
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="fc-inner" id="fcInner">
+          <div class="fc-front">
+            <span class="fc-label">Question</span>
+            <p class="fc-text" id="cardQ"></p>
+            <span class="fc-hint">Click to reveal answer</span>
+          </div>
+          <div class="fc-back">
+            <span class="fc-label">Answer</span>
+            <p class="fc-text" id="cardA"></p>
+            <div class="fc-meta">
+              <span class="diff-badge" id="cardDiff"></span>
+              <span style="font-size:.7rem;color:var(--text-2)" id="cardTopic"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fc-progress-wrap">
+        <div class="prog-bar"><div class="prog-fill" id="fcProg"></div></div>
+      </div>
+    </div>
+  </div><!-- /output-panel -->
+
+</div><!-- /study-layout -->
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── File upload ───────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput  = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click',    () => fileInput.click());
+uploadZone.addEventListener('dragover', e  => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave',() => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop',     e  => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); });
+
+document.getElementById('studyText').addEventListener('input', function () {
+  const w = this.value.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById('textStats').textContent = `${w} words · ${this.value.length} chars`;
+});
+
+async function handleFileUpload(file) {
+  const status = document.getElementById('uploadStatus');
+  status.className = 'upload-status'; status.classList.remove('hidden');
+  status.textContent = `⏳ Processing ${file.name}…`;
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    document.getElementById('studyText').value = d.text;
+    document.getElementById('textStats').textContent =
+      `${d.text.split(/\s+/).filter(Boolean).length} words · ${d.characters.toLocaleString()} chars`;
+    status.className = 'upload-status success';
+    status.textContent = `✅ ${d.filename} extracted (${d.characters.toLocaleString()} chars)`;
+    showToast('File processed!', 'success');
+  } catch(e) {
+    status.className = 'upload-status error';
+    status.textContent = `❌ ${e.message}`;
+    showToast(e.message, 'error');
+  }
+}
+
+// ── Process actions ───────────────────────────────────────────
+async function processAction(action) {
+  const text = document.getElementById('studyText').value.trim();
+  if (!text) { showToast('Please enter or upload some text first', 'warning'); return; }
+
+  const opts = {
+    subject:   document.getElementById('subjectInput').value,
+    level:     document.getElementById('levelSelect').value,
+    quiz_type: document.getElementById('quizTypeSelect').value,
+    count:     parseInt(document.getElementById('countInput').value),
+  };
+
+  document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`ab-${action}`)?.classList.add('active');
+  showLoading(action);
+
+  try {
+    const r = await fetch('/api/process', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, action, options: opts }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    renderResult(action, d);
+  } catch(e) {
+    hideLoading();
+    document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
+    showToast(e.message, 'error');
+  }
+}
+
+function renderResult(action, data) {
+  hideLoading();
+  document.getElementById('outputActions').style.display = 'flex';
+  const body = document.getElementById('outputContent');
+
+  if (action === 'flashcards' && data.data?.flashcards?.length) {
+    document.getElementById('outputTitle').textContent = `🃏 ${data.data.count} Flashcards`;
+    body.innerHTML = data.response ? `<div class="md-out">${mdToHtml(data.response)}</div>` : '';
+    initFC(data.data.flashcards);
+    return;
+  }
+  if (action === 'quiz' && data.data?.questions?.length) {
+    document.getElementById('outputTitle').textContent = `✏️ ${data.data.count} Questions`;
+    renderQuizPreview(data.data);
+    return;
+  }
+  if (action === 'concept_map' && data.data?.concept_map) {
+    document.getElementById('outputTitle').textContent = '🗺️ Concept Map';
+    renderConceptMap(data.data.concept_map);
+    return;
+  }
+  const titles = { summarize: '📄 Summary', predict_topics: '🔮 Exam Predictions' };
+  document.getElementById('outputTitle').textContent = titles[action] || '📋 Result';
+  body.innerHTML = `<div class="md-out">${mdToHtml(data.response || '')}</div>`;
+  document.getElementById('fcViewer').classList.add('hidden');
+}
+
+function renderQuizPreview(data) {
+  const body = document.getElementById('outputContent');
+  document.getElementById('fcViewer').classList.add('hidden');
+  if (!data.questions?.length) { body.innerHTML = '<p>No questions generated.</p>'; return; }
+  let html = '<div class="quiz-preview">';
+  data.questions.forEach((q, i) => {
+    html += `<div class="quiz-q-card"><span class="q-num">Q${i+1}. ${esc(q.question)}</span>`;
+    if (q.options) {
+      Object.entries(q.options).forEach(([k,v]) => {
+        html += `<div class="quiz-opt ${k===q.correct?'correct':''}">
+          <span><strong>${k}.</strong> ${esc(v)}</span>
+          ${k===q.correct ? '<span>✓ Correct</span>' : ''}
+        </div>`;
+      });
+      if (q.explanation) html += `<div class="quiz-expl">💡 ${esc(q.explanation)}</div>`;
+    } else if (q.model_answer) {
+      html += `<div class="quiz-ma">📝 ${esc(q.model_answer)}</div>`;
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+function renderConceptMap(map) {
+  const body = document.getElementById('outputContent');
+  document.getElementById('fcViewer').classList.add('hidden');
+  let html = `<div class="cmap-view">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <span class="cmap-root">${esc(map.root||'Main Concept')}</span>
+    </div>
+    <div class="cmap-nodes">`;
+  (map.nodes||[]).forEach(n => {
+    html += `<div class="cmap-node"><strong>${esc(n.label||'')}</strong><p>${esc(n.description||'')}</p></div>`;
+  });
+  html += '</div></div>';
+  body.innerHTML = html;
+}
+
+// ── Flashcard viewer ──────────────────────────────────────────
+let fcCards = [], fcIdx = 0, fcFlipped = false;
+
+function initFC(cards) { fcCards = cards; fcIdx = 0; document.getElementById('fcViewer').classList.remove('hidden'); renderFC(); }
+function renderFC() {
+  if (!fcCards.length) return;
+  const c = fcCards[fcIdx];
+  document.getElementById('cardQ').textContent = c.question;
+  document.getElementById('cardA').textContent = c.answer;
+  document.getElementById('cardCounter').textContent = `${fcIdx+1} / ${fcCards.length}`;
+  const diff = (c.difficulty||'medium').toLowerCase();
+  const badge = document.getElementById('cardDiff');
+  badge.textContent = diff.toUpperCase(); badge.className = `diff-badge ${diff}`;
+  document.getElementById('cardTopic').textContent = c.topic || '';
+  document.getElementById('fcProg').style.width = `${((fcIdx+1)/fcCards.length)*100}%`;
+  fcFlipped = false; document.getElementById('fcInner').classList.remove('flipped');
+}
+function flipCard() { fcFlipped = !fcFlipped; document.getElementById('fcInner').classList.toggle('flipped', fcFlipped); }
+function nextCard() { if (fcIdx < fcCards.length-1) { fcIdx++; renderFC(); } }
+function prevCard() { if (fcIdx > 0) { fcIdx--; renderFC(); } }
+
+// ── Study Plan ────────────────────────────────────────────────
+async function buildStudyPlan() {
+  const topicsRaw = document.getElementById('planTopics').value.trim();
+  if (!topicsRaw) { showToast('Enter at least one topic', 'warning'); return; }
+  const topics = topicsRaw.split('\n').map(t=>t.trim()).filter(Boolean);
+  const days   = parseInt(document.getElementById('planDays').value);
+  const hours  = parseFloat(document.getElementById('planHours').value);
+  showLoading('study_plan');
+  try {
+    const r = await fetch('/api/study-plan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topics, days, hours_per_day: hours }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    document.getElementById('outputTitle').textContent = '📅 Your Study Plan';
+    document.getElementById('outputContent').innerHTML = `<div class="md-out">${mdToHtml(d.response)}</div>`;
+    document.getElementById('outputActions').style.display = 'flex';
+    document.getElementById('fcViewer').classList.add('hidden');
+    hideLoading();
+  } catch(e) { hideLoading(); showToast(e.message, 'error'); }
+}
+
+// ── Explain Concept ───────────────────────────────────────────
+async function explainConcept() {
+  const concept = document.getElementById('conceptInput').value.trim();
+  if (!concept) { showToast('Enter a concept to explain', 'warning'); return; }
+  const level   = document.getElementById('levelSelect').value;
+  const subject = document.getElementById('subjectInput').value;
+  document.getElementById('ab-explain').classList.add('active');
+  showLoading('explain');
+  try {
+    const r = await fetch('/api/explain', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concept, level, subject }),
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    document.getElementById('outputTitle').textContent = `💡 ${concept}`;
+    document.getElementById('outputContent').innerHTML = `<div class="md-out">${mdToHtml(d.explanation)}</div>`;
+    document.getElementById('outputActions').style.display = 'flex';
+    document.getElementById('fcViewer').classList.add('hidden');
+    hideLoading();
+    document.querySelectorAll('.action-btn').forEach(b=>b.classList.remove('active'));
+  } catch(e) { hideLoading(); showToast(e.message, 'error'); }
+}
+
+// ── Loading helpers ───────────────────────────────────────────
+const LOADING_LABELS = {
+  summarize:'Summarizing your material…', flashcards:'Generating flashcards…',
+  quiz:'Crafting quiz questions…', concept_map:'Building concept map…',
+  predict_topics:'Analyzing exam predictions…', study_plan:'Creating your study plan…',
+  explain:'Explaining concept…',
+};
+function showLoading(action) {
+  document.getElementById('loadingSpinner').classList.remove('hidden');
+  document.getElementById('loadingText').textContent = LOADING_LABELS[action] || 'AI is working…';
+  document.getElementById('outputContent').style.opacity = '.3';
+}
+function hideLoading() {
+  document.getElementById('loadingSpinner').classList.add('hidden');
+  document.getElementById('outputContent').style.opacity = '1';
+}
+
+// ── Output utils ──────────────────────────────────────────────
+function copyOutput() {
+  navigator.clipboard.writeText(document.getElementById('outputContent').innerText)
+    .then(() => showToast('Copied to clipboard!', 'success'));
+}
+function downloadOutput() {
+  const text  = document.getElementById('outputContent').innerText;
+  const title = document.getElementById('outputTitle').innerText;
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([text],{type:'text/plain'})),
+    download: title.replace(/[^a-z0-9]/gi,'_')+'.txt',
+  });
+  a.click();
+}
+function clearOutput() {
+  document.getElementById('outputContent').innerHTML =
+    '<div class="empty-state"><span class="es-icon">🤖</span><h3>Ready</h3><p>Process material above.</p></div>';
+  document.getElementById('outputTitle').textContent = '📋 Results will appear here';
+  document.getElementById('outputActions').style.display = 'none';
+  document.getElementById('fcViewer').classList.add('hidden');
+  document.querySelectorAll('.action-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function mdToHtml(t) {
+  if (!t) return '';
+  return t
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>'+m+'</ul>')
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/\n\n+/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+}
+</script>
+{% endblock %}

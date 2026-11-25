@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Learning Dashboard — SmartStudy AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 Learning Dashboard</h1>
+    <p>Track your progress, weak areas, and study milestones</p>
+</div>
+
+<!-- Stats Overview -->
+<div class="dash-stats">
+    <div class="ds-card">
+        <div class="ds-icon">📄</div>
+        <div class="ds-info">
+            <span class="ds-num">{{ progress.summaries_created }}</span>
+            <span class="ds-lbl">Summaries</span>
+        </div>
+    </div>
+    <div class="ds-card">
+        <div class="ds-icon">🃏</div>
+        <div class="ds-info">
+            <span class="ds-num">{{ progress.flashcards_reviewed }}</span>
+            <span class="ds-lbl">Flashcards</span>
+        </div>
+    </div>
+    <div class="ds-card">
+        <div class="ds-icon">✏️</div>
+        <div class="ds-info">
+            <span class="ds-num">{{ progress.quizzes_taken }}</span>
+            <span class="ds-lbl">Quizzes</span>
+        </div>
+    </div>
+    <div class="ds-card">
+        <div class="ds-icon">📚</div>
+        <div class="ds-info">
+            <span class="ds-num">{{ progress.topics_studied | length }}</span>
+            <span class="ds-lbl">Topics</span>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Grid -->
+<div class="dash-grid">
+    <!-- Quiz Scores Chart -->
+    <div class="dash-card wide">
+        <div class="dash-card-title">📈 Quiz Performance by Topic</div>
+        {% if progress.quiz_scores %}
+            <div class="score-bars">
+                {% for topic, score in progress.quiz_scores.items() %}
+                <div class="sb-row">
+                    <span class="sb-topic">{{ topic }}</span>
+                    <div class="sb-track">
+                        <div class="sb-fill {% if score >= 80 %}ok{% elif score >= 60 %}mid{% else %}bad{% endif %}"
+                            style="width: {{ score }}%">
+                        </div>
+                    </div>
+                    <span class="sb-val {% if score >= 80 %}c-ok{% elif score >= 60 %}c-mid{% else %}c-bad{% endif %}">
+                        {{ score }}%
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state small">
+                <p>Take a quiz to see your performance breakdown</p>
+                <a href="{{ url_for('quiz_page') }}" class="btn btn-primary btn-sm">Take Quiz</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Topics Studied -->
+    <div class="dash-card">
+        <div class="dash-card-title">📚 Topics Studied</div>
+        {% if progress.topics_studied %}
+            <div class="topic-cloud">
+                {% for topic in progress.topics_studied %}
+                    <span class="topic-pill">{{ topic }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state small">
+                <p>No topics studied yet</p>
+                <a href="{{ url_for('study') }}" class="btn btn-primary btn-sm">Start Studying</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Weak Areas -->
+    <div class="dash-card">
+        <div class="dash-card-title">⚠️ Focus Areas</div>
+        {% if progress.quiz_scores %}
+            {% set weak = [] %}
+            {% for topic, score in progress.quiz_scores.items() %}
+                {% if score < 70 %}
+                    {% set _ = weak.append({'topic': topic, 'score': score}) %}
+                {% endif %}
+            {% endfor %}
+            {% if weak %}
+                <div class="weak-list">
+                    {% for item in weak %}
+                    <div class="weak-row">
+                        <div class="weak-top">
+                            <span class="weak-name">{{ item.topic }}</span>
+                            <span class="weak-score">{{ item.score }}%</span>
+                        </div>
+                        <div class="prog-bar">
+                            <div class="prog-fill bad" style="width: {{ item.score }}%"></div>
+                        </div>
+                        <p class="weak-hint">🔴 Needs immediate attention</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state small" style="color:var(--green-2)">
+                    <span style="font-size:2rem;display:block;margin-bottom:.5rem">🎉</span>
+                    <p style="color:var(--green-2)">No weak areas! Keep it up!</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state small">
+                <p>Take quizzes to identify weak areas</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Achievements -->
+    <div class="dash-card">
+        <div class="dash-card-title">🏆 Achievements</div>
+        <div class="ach-list">
+            <div class="ach-row {% if progress.summaries_created >= 1 %}done{% endif %}">
+                <span class="ach-ico">📄</span>
+                <div class="ach-info">
+                    <strong>First Summary</strong>
+                    <span>Created your first AI summary</span>
+                </div>
+                <span class="ach-mark">{{ '✅' if progress.summaries_created >= 1 else '🔒' }}</span>
+            </div>
+            <div class="ach-row {% if progress.flashcards_reviewed >= 10 %}done{% endif %}">
+                <span class="ach-ico">🃏</span>
+                <div class="ach-info">
+                    <strong>Flash Master</strong>
+                    <span>Reviewed 10+ flashcards</span>
+                </div>
+                <span class="ach-mark">{{ '✅' if progress.flashcards_reviewed >= 10 else '🔒' }}</span>
+            </div>
+            <div class="ach-row {% if progress.quizzes_taken >= 3 %}done{% endif %}">
+                <span class="ach-ico">✏️</span>
+                <div class="ach-info">
+                    <strong>Quiz Taker</strong>
+                    <span>Completed 3+ quizzes</span>
+                </div>
+                <span class="ach-mark">{{ '✅' if progress.quizzes_taken >= 3 else '🔒' }}</span>
+            </div>
+            <div class="ach-row {% if progress.topics_studied | length >= 5 %}done{% endif %}">
+                <span class="ach-ico">🌟</span>
+                <div class="ach-info">
+                    <strong>Multi-Subject</strong>
+                    <span>Studied 5+ different topics</span>
+                </div>
+                <span class="ach-mark">{{ '✅' if progress.topics_studied | length >= 5 else '🔒' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Recommendations -->
+    <div class="dash-card wide">
+        <div class="dash-card-title">🤖 AI Study Recommendations</div>
+        <div id="aiRecommendations" class="ai-recs">
+            <div class="load-inline">
+                <div class="spinner sm"></div>
+                <span>Loading personalized recommendations…</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions-section">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem">⚡ Quick Actions</h3>
+    <div class="qa-grid">
+        <a href="{{ url_for('study') }}" class="qa-card">
+            <span>📄</span>
+            <strong>Summarize</strong>
+        </a>
+        <a href="{{ url_for('study') }}" class="qa-card">
+            <span>🃏</span>
+            <strong>Flashcards</strong>
+        </a>
+        <a href="{{ url_for('quiz_page') }}" class="qa-card">
+            <span>✏️</span>
+            <strong>Practice Quiz</strong>
+        </a>
+        <a href="{{ url_for('study') }}" class="qa-card">
+            <span>📅</span>
+            <strong>Study Plan</strong>
+        </a>
+        <a href="{{ url_for('study') }}" class="qa-card">
+            <span>🔮</span>
+            <strong>Exam Predict</strong>
+        </a>
+        <a href="{{ url_for('index') }}" class="qa-card">
+            <span>💬</span>
+            <strong>Ask AI</strong>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadRecommendations() {
+    const progress = {{ progress | tojson }};
+
+    let prompt = "Based on my study progress, give me 3-5 specific, actionable study recommendations. ";
+    if (progress.quiz_scores && Object.keys(progress.quiz_scores).length > 0) {
+        const scores = Object.entries(progress.quiz_scores)
+            .map(([t, s]) => `${t}: ${s}%`).join(', ');
+        prompt += `My quiz scores: ${scores}. `;
+    }
+    if (progress.topics_studied && progress.topics_studied.length > 0) {
+        prompt += `I've studied: ${progress.topics_studied.join(', ')}. `;
+    }
+    prompt += "Be concise and encouraging. Use bullet points.";
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: prompt }),
+        });
+        const data = await res.json();
+        document.getElementById('aiRecommendations').innerHTML =
+            `<div class="md-out">${renderMd(data.response || 'Keep studying consistently!')}</div>`;
+    } catch(e) {
+        document.getElementById('aiRecommendations').innerHTML =
+            '<p style="color:var(--text-2)">📚 Keep studying consistently and take regular quizzes to track your progress!</p>';
+    }
+}
+
+loadRecommendations();
+</script>
+{% endblock %}
